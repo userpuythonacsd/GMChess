@@ -6,6 +6,7 @@
     <title>GM Chess - The Ultimate Retro Engine</title>
     <!-- 0-Bug standard chess rule library via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -33,6 +34,8 @@
                     <option value="ai-medium" selected>Vs AI (Club Player)</option>
                     <option value="ai-easy">Vs AI (Beginner)</option>
                     <option value="local">Local Multiplayer (Pass & Play)</option>
+                    <option value="online-create">Online &#8212; Create Room</option>
+                    <option value="online-join">Online &#8212; Random Match</option>
                 </select>
             </div>
             
@@ -76,6 +79,18 @@
         &copy; 2026 GM Chess. Accurate FIDE Move Validation. Stockfish Engine Powered.
     </footer>
 
+    <!-- Multiplayer overlay: hidden by default, shown only during online modes -->
+    <div id="mp-overlay" style="display:none;">
+        <div id="mp-box" class="panel">
+            <h3 class="panel-title" id="mp-title">Online Multiplayer</h3>
+            <p id="mp-status"></p>
+            <div id="mp-room-info" style="display:none;">
+                <p>Room ID: <strong id="mp-room-id"></strong></p>
+                <button onclick="copyRoomLink()">Copy Link</button>
+            </div>
+            <button id="mp-cancel-btn" onclick="cancelMultiplayer()">Cancel</button>
+        </div>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>

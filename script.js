@@ -229,7 +229,7 @@ function checkStatus() {
 
 function triggerAI() {
     const mode = document.getElementById('game-mode').value;
-    if (mode === 'local') return;
+    if (mode === 'local' || mode === 'online-create' || mode === 'online-join') return;
 
     let depth = '10'; // Medium
     if (mode === 'ai-easy') depth = '5';
@@ -237,18 +237,21 @@ function triggerAI() {
 
     isAiThinking = true;
     engine.postMessage('position fen ' + chess.fen());
-    engine.postMessage('go depth ' + depth); 
+    engine.postMessage('go depth ' + depth);
 }
 
 function updateGameState() {
     renderBoard();
     checkStatus();
-    
+
+    const mode = document.getElementById('game-mode').value;
+
+    // Online multiplayer: no AI, no Stockfish analysis
+    if (mode === 'online-create' || mode === 'online-join') return;
+
     engine.postMessage('stop'); // Halt analysis immediately
     if (chess.game_over()) return;
 
-    const mode = document.getElementById('game-mode').value;
-    
     if (mode !== 'local' && chess.turn() === 'b') {
         // Prevent race condition, add tiny delay for UI update
         setTimeout(triggerAI, 50);
@@ -259,7 +262,7 @@ function updateGameState() {
         analysisTimeout = setTimeout(() => {
             engine.postMessage('position fen ' + chess.fen());
             engine.postMessage('go depth 15');
-        }, 500); 
+        }, 500);
     }
 }
 
@@ -315,3 +318,168 @@ window.onload = function() {
     engine.postMessage('isready');
     updateGameState();
 };
+
+// ─── Multiplayer ───────────────────────────────────────────────────────────────
+
+let socket = null;
+let mpColor = null; // 'w' or 'b' — this client's assigned color
+let mpRoomId = null;
+
+const modeSelect = document.getElementById('game-mode');
+modeSelect.addEventListener('change', function() {
+    const mode = this.value;
+    if (mode === 'online-create' || mode === 'online-join') {
+        initMultiplayer(mode);
+    } else if (socket) {
+        // Clean up socket if switching away from an online mode
+        socket.disconnect();
+        socket = null;
+        mpColor = null;
+        mpRoomId = null;
+        document.getElementById('mp-overlay').style.display = 'none';
+    }
+});
+
+
+function attachSocketListeners() {
+    socket.on('waitingForOpponent', ({ roomId }) => {
+        if (roomId) {
+            mpRoomId = roomId;
+            document.getElementById('mp-room-id').textContent = roomId;
+            document.getElementById('mp-room-info').style.display = '';
+            document.getElementById('mp-title').textContent = 'Create Room';
+        }
+        document.getElementById('mp-status').textContent = 'Waiting for opponent\u2026';
+        document.getElementById('mp-overlay').style.display = '';
+    });
+    socket.on('gameStart', ({ color, fen, roomId }) => {
+        mpColor = color;
+        mpRoomId = roomId;
+        chess.load(fen);
+        document.getElementById('mp-overlay').style.display = 'none';
+        isFlipped = (color === 'b');
+        updateGameState();
+    });
+    socket.on('moveApplied', ({ fen, from, to }) => {
+        chess.load(fen);
+        lastMove = { from, to };
+        selectedSquare = null;
+        validMovesForSelected = [];
+        updateGameState();
+    });
+    socket.on('opponentLeft', () => {
+        document.getElementById('mp-status').textContent = 'Opponent disconnected.';
+        document.getElementById('mp-room-info').style.display = 'none';
+        document.getElementById('mp-title').textContent = 'Game Over';
+        document.getElementById('mp-overlay').style.display = '';
+        mpColor = null;
+    });
+    socket.on('error', (msg) => alert(msg));
+}
+
+function initMultiplayer(mode) {
+    // Stop any running AI analysis before entering online mode
+    clearTimeout(analysisTimeout);
+    engine.postMessage('stop');
+    isAiThinking = false;
+
+    if (socket) {
+        // Disconnect to cleanly leave any existing server room before starting fresh
+        socket.disconnect();
+        socket = null;
+    }
+    socket = io();
+    attachSocketListeners();
+
+    mpColor = null;
+    chess.reset();
+    document.getElementById('mp-room-info').style.display = 'none';
+
+    if (mode === 'online-create') {
+        socket.emit('createRoom');
+    } else {
+        document.getElementById('mp-title').textContent = 'Random Match';
+        document.getElementById('mp-status').textContent = 'Finding opponent\u2026';
+        document.getElementById('mp-overlay').style.display = '';
+        socket.emit('randomMatch');
+    }
+}
+
+
+function cancelMultiplayer() {
+    document.getElementById('mp-overlay').style.display = 'none';
+    if (socket) { socket.disconnect(); socket = null; }
+    mpColor = null;
+    mpRoomId = null;
+    modeSelect.value = 'ai-medium';
+    resetGame();
+}
+
+function copyRoomLink() {
+    const url = `${location.origin}${location.pathname}?room=${mpRoomId}`;
+    navigator.clipboard.writeText(url).then(() => alert('Link copied!')).catch(() => alert('Room ID: ' + mpRoomId));
+}
+
+// Intercept handleSquareClick for multiplayer enforcement
+const _origHandleSquareClick = handleSquareClick;
+function handleSquareClick(sq) {
+    const mode = document.getElementById('game-mode').value;
+    if (mode !== 'online-create' && mode !== 'online-join') {
+        return _origHandleSquareClick(sq);
+    }
+    if (!mpColor || chess.game_over() || chess.turn() !== mpColor) return;
+
+    if (selectedSquare) {
+        if (chess.moves({ verbose: true }).some(m => m.from === selectedSquare && m.to === sq)) {
+            socket.emit('move', { from: selectedSquare, to: sq, promotion: 'q' });
+            selectedSquare = null;
+            validMovesForSelected = [];
+        } else {
+            const piece = chess.get(sq);
+            if (piece && piece.color === mpColor) {
+                selectSquare(sq);
+            } else {
+                selectedSquare = null;
+                validMovesForSelected = [];
+                renderBoard();
+            }
+        }
+    } else {
+        const piece = chess.get(sq);
+        if (piece && piece.color === mpColor) selectSquare(sq);
+    }
+}
+
+// Intercept submitTypedMove for multiplayer enforcement
+const _origSubmitTypedMove = submitTypedMove;
+function submitTypedMove() {
+    const mode = document.getElementById('game-mode').value;
+    if (mode !== 'online-create' && mode !== 'online-join') {
+        return _origSubmitTypedMove();
+    }
+    if (!mpColor || chess.game_over() || chess.turn() !== mpColor) return;
+
+    const moveStr = document.getElementById('type-move').value.trim().replace(/[^a-zA-Z0-9=+\-x#O]/g, '');
+    if (!moveStr) return;
+
+    const testChess = new Chess(chess.fen());
+    const result = testChess.move(moveStr);
+    if (!result) return alert('Invalid FIDE notation. Example: e4, Nf3, O-O');
+
+    socket.emit('move', { from: result.from, to: result.to, promotion: result.promotion || 'q' });
+    document.getElementById('type-move').value = '';
+}
+
+// Handle ?room= URL param for direct room join via shared link
+(function checkUrlRoom() {
+    const roomId = new URLSearchParams(location.search).get('room');
+    if (!roomId) return;
+    modeSelect.value = 'online-create';
+    socket = io();
+    attachSocketListeners();
+    document.getElementById('mp-title').textContent = 'Join Room';
+    document.getElementById('mp-status').textContent = 'Joining room ' + roomId + '\u2026';
+    document.getElementById('mp-overlay').style.display = '';
+    socket.emit('joinRoom', { roomId });
+})();
+
