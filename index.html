@@ -2,25 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GM Chess - The Ultimate Retro Engine</title>
     <!-- 0-Bug standard chess rule library via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="theme-retro">
     <header class="header">
-        <h1>GM Chess</h1>
-        <p>The Ultimate 0-Bug Browser Engine for Blitz Typers & Grandmasters</p>
+        <div class="header-content">
+            <div>
+                <h1>GM Chess</h1>
+                <p>The Ultimate 0-Bug Browser Engine for Blitz Typers & Grandmasters</p>
+            </div>
+            <div class="header-badges">
+                <span id="hit-counter" class="badge">Visitors: Live</span>
+                <button class="support-btn" onclick="openDonateModal()">Support Project Γ¥ñ∩╕Å</button>
+            </div>
+        </div>
     </header>
     
     <nav class="nav-bar">
         <a href="index.html">Play Game</a>
         <a href="about.html">About Us</a>
-        <a href="contact.html">Contact Us</a>
+        <a href="changelog.html">Change Log</a>
         <a href="terms.html">Terms of Service</a>
         <a href="privacy.html">Privacy Policy</a>
+        <a href="github.html">Github</a>
+        <a href="contact.html">Contact us</a>
+        <a href="#" onclick="openDonateModal()">Support Us ΓÖÑ∩╕Å</a>
     </nav>
 
     <main class="main-container">
@@ -28,29 +39,48 @@
         <aside class="panel sidebar">
             <h3 class="panel-title">Game Controls</h3>
             <div class="control-group">
-                <label for="game-mode">Mode:</label>
+                <label for="game-mode">Opponent:</label>
                 <select id="game-mode" onchange="resetGame()">
-                    <option value="ai-hard">Vs AI (Grandmaster)</option>
-                    <option value="ai-medium" selected>Vs AI (Club Player)</option>
-                    <option value="ai-easy">Vs AI (Beginner)</option>
-                    <option value="local">Local Multiplayer (Pass & Play)</option>
+                    <option value="ai-gm">Vs AI (Grandmaster)</option>
+                    <option value="ai-master">Vs AI (Master)</option>
+                    <option value="ai-club" selected>Vs AI (Club Player)</option>
+                    <option value="ai-beginner">Vs AI (Beginner)</option>
+                    <option value="local">Local Multiplayer</option>
                     <option value="online-create">Online &#8212; Create Room</option>
                     <option value="online-join">Online &#8212; Random Match</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="board-theme">Visual Theme:</label>
+                <select id="board-theme" onchange="changeTheme()">
+                    <option value="theme-retro" selected>Windows 95 (Retro)</option>
+                    <option value="theme-wood">Classic Wood</option>
+                    <option value="theme-neon">Cyber Neon</option>
+                    <option value="theme-dark">Midnight Dark</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="sound-toggle">Sound FX:</label>
+                <select id="sound-toggle">
+                    <option value="on" selected>On</option>
+                    <option value="off">Off</option>
                 </select>
             </div>
             
             <div class="button-group">
                 <button onclick="resetGame()">New Game</button>
+                <button onclick="undoMove()">Undo Move</button>
                 <button onclick="flipBoard()">Flip Board</button>
             </div>
             
             <hr class="retro-hr">
             
-            <h3 class="panel-title">Algebraic Typing (Blitz)</h3>
-            <p class="small-text">Type FIDE moves (e.g., e4, Nf3, O-O) and press Enter.</p>
+            <h3 class="panel-title">Position Setup (FEN)</h3>
             <div class="typing-container">
-                <input type="text" id="type-move" placeholder="Type move..." autocomplete="off">
-                <button onclick="submitTypedMove()">Go</button>
+                <input type="text" id="fen-input" placeholder="Paste FEN here..." autocomplete="off">
+                <button onclick="loadFEN()">Load</button>
             </div>
 
             <hr class="retro-hr">
@@ -60,24 +90,66 @@
             <div class="status-box status-turn" id="status">White to move</div>
         </aside>
 
-        <!-- Center: Board -->
+        <!-- Center: Board Area -->
         <section class="panel board-area">
-            <div class="board-wrapper">
-                <div id="board"></div>
+            <!-- Top Captured Pieces -->
+            <div id="captured-top" class="captured-pieces"></div>
+            
+            <div class="board-and-eval">
+                <!-- Visual Evaluation Bar -->
+                <div class="eval-bar-container">
+                    <div id="eval-fill" class="eval-fill"></div>
+                </div>
+                
+                <div class="board-wrapper">
+                    <div id="board"></div>
+                </div>
+            </div>
+
+            <!-- Bottom Captured Pieces -->
+            <div id="captured-bottom" class="captured-pieces"></div>
+            
+            <!-- Typing Interface moved below board for focus -->
+            <div class="typing-container blitz-typing" style="margin-top: 15px;">
+                <input type="text" id="type-move" placeholder="Type FIDE move (e.g. e4, Nf3)..." autocomplete="off">
+                <button onclick="submitTypedMove()">Enter</button>
             </div>
         </section>
 
-        <!-- Right Sidebar: History -->
+        <!-- Right Sidebar: History & Export -->
         <aside class="panel sidebar">
             <h3 class="panel-title">Move History (PGN)</h3>
             <div id="pgn" class="history-box"></div>
-            <button class="full-width-btn" onclick="downloadPGN()">Download PGN</button>
+            
+            <div class="button-group" style="margin-top: 10px;">
+                <button class="full-width-btn" onclick="downloadPGN()">Download PGN</button>
+                <button class="full-width-btn action-btn" onclick="analyzeOnLichess()">Analyze on Lichess</button>
+            </div>
+            
+            <!-- Hidden form for Lichess import -->
+            <form action="https://lichess.org/api/import" method="post" target="_blank" id="lichess-form" style="display:none;">
+                <input type="hidden" name="pgn" id="lichess-pgn">
+            </form>
         </aside>
     </main>
 
     <footer class="footer">
-        &copy; 2026 GM Chess. Accurate FIDE Move Validation. Stockfish Engine Powered.
+        &copy; 2026 GM Chess. Stockfish 10 WASM Powered.
     </footer>
+
+    <!-- Donation Modal -->
+    <div id="donate-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="panel-title" style="margin:0;">Support GM Chess</h3>
+                <button class="close-btn" onclick="closeDonateModal()">X</button>
+            </div>
+            <p>Your support helps maintain our servers, keep Stockfish running 24/7, and develop new features!</p>
+            <div class="donate-buttons">
+                <button class="full-width-btn action-btn" onclick="window.open('https://buymeacoffee.com/', '_blank')">Γÿò Buy us a Coffee</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Multiplayer overlay: hidden by default, shown only during online modes -->
     <div id="mp-overlay" style="display:none;">
