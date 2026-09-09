@@ -24,7 +24,7 @@ const pieceImages = {
     'K': 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg'
 };
 
-// let aiSafetyTimer = null;
+let aiSafetyTimer = null;
 
 // Initialize Stockfish Worker robustly
 function initEngine() {
@@ -81,9 +81,9 @@ function handleEngineMessage(event) {
     if (line.includes('score cp')) {
         const match = line.match(/score cp (-?\d+)/);
         if (match) {
-            let eval = parseInt(match[1]) / 100;
-            if (chess.turn() === 'b') eval = -eval; 
-            updateEvalVisuals(eval, false);
+            let evalScore = parseInt(match[1]) / 100;
+            if (chess.turn() === 'b') evalScore = -evalScore; 
+            updateEvalVisuals(evalScore, false);
         }
     } else if (line.includes('score mate')) {
         const match = line.match(/score mate (-?\d+)/);
@@ -108,14 +108,17 @@ function handleEngineMessage(event) {
                 const isCapture = chess.get(to) !== null;
                 const result = chess.move({ from, to, promotion });
                 
-                if(result) {
+                if (result) {
                     lastMove = { from, to };
                     playSound(isCapture ? 'capture' : 'move');
                     if (chess.in_check()) playSound('check');
+                    isAiThinking = false;
+                    updateGameState();
+                    return;
                 }
             }
-            isAiThinking = false;
-            updateGameState();
+            // Fallback move if engine move is invalid or unparsed
+            makeFallbackAiMove();
         }
     }
 }
@@ -444,11 +447,12 @@ function triggerAI() {
             engine.postMessage('setoption name Skill Level value ' + skill);
             engine.postMessage('position fen ' + chess.fen());
             engine.postMessage('go depth ' + depth);
+            const safetyTimeout = (mode === 'ai-gm') ? 8000 : (mode === 'ai-master') ? 6000 : 4000;
             aiSafetyTimer = setTimeout(() => {
                 if (isAiThinking) {
                     makeFallbackAiMove();
                 }
-            }, 1200);
+            }, safetyTimeout);
             return;
         } catch(e) {
             console.error("Worker postMessage failed", e);
