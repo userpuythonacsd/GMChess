@@ -3,191 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GM Chess - The Ultimate Retro Engine</title>
-    <!-- 0-Bug standard chess rule library via CDN -->
+    
+    <!-- SEO & Metadata -->
+    <title>GM Chess - Web 2.0 Chess Engine</title>
+    <meta name="description" content="Play GM Chess, the ultimate responsive browser-based chess engine. Train your memory with Blindfold Mode, analyze with Threat Radar, and play online.">
+    <meta name="keywords" content="chess, play chess, online chess, stockfish, blindfold chess, chess engine, web 2.0">
+    <meta name="author" content="GM Chess">
+    
+    <!-- Open Graph for Social Sharing -->
+    <meta property="og:title" content="GM Chess - Web 2.0 Chess Engine">
+    <meta property="og:description" content="Play GM Chess, the ultimate responsive browser-based chess engine with Threat Radar and Blindfold modes.">
+    <meta property="og:type" content="website">
+    
+    <!-- Security: Content Security Policy (CSP) to prevent XSS and unauthorized script execution -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https: wss: data: blob:; object-src 'none';">
+
+    <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
     <link rel="stylesheet" href="style.css">
+    
+    <!-- SEO: JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "GM Chess",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any",
+      "description": "A fully functional, responsive browser chess engine with unique training features."
+    }
+    </script>
 </head>
-<body class="theme-retro">
-    <header class="header">
+<body class="theme-2010s">
+    <div id="zen-overlay"></div> <!-- Used for Zen Mode -->
+
+    <header class="header glossy-panel" id="main-header">
         <div class="header-content">
-            <div>
-                <h1>GM Chess</h1>
-                <p>The Ultimate 0-Bug Browser Engine for Blitz Typers & Grandmasters</p>
+            <div class="logo-area">
+                <h1>GM Chess <span class="version-tag">v2.0</span></h1>
+                <p>The Ultimate Browser Engine</p>
             </div>
             <div class="header-badges">
-                <span id="hit-counter" class="badge">Visitors: Live</span>
-                <button class="support-btn" onclick="openDonateModal()">Support Project ❤️</button>
+                <span id="hit-counter" class="badge">Live Players: Active</span>
+                <button class="btn btn-primary" onclick="openDonateModal()">Support Project ❤️</button>
             </div>
         </div>
     </header>
     
-    <nav class="nav-bar">
-        <a href="index.html">Play Game</a>
-        <a href="about.html">About Us</a>
+    <nav class="nav-bar glossy-panel" id="main-nav">
+        <a href="index.html" class="active">Play Game</a>
+        <a href="about.html">About</a>
         <a href="changelog.html">Change Log</a>
-        <a href="terms.html">Terms of Service</a>
-        <a href="privacy.html">Privacy Policy</a>
-        <a href="github.html">Github</a>
-        <a href="contact.html">Contact us</a>
-        <a href="#" onclick="openDonateModal()">Support Us ♥️</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="github.html" target="_blank" rel="noopener noreferrer">Github</a>
+        <button class="btn btn-sm btn-dark" onclick="toggleZenMode()">🧘 Zen Mode</button>
     </nav>
 
-    <main class="main-container">
+    <main class="main-container" id="main-content">
         <!-- Left Sidebar: Controls -->
-        <aside class="panel sidebar">
-            <h3 class="panel-title">Game Controls</h3>
+        <aside class="panel sidebar glossy-panel">
+            <div class="panel-header">Game Setup</div>
+            
             <div class="control-group">
                 <label for="game-mode">Opponent:</label>
-                <select id="game-mode" onchange="resetGame()">
-                    <option value="ai-gm">Vs AI (Grandmaster)</option>
-                    <option value="ai-master">Vs AI (Master)</option>
-                    <option value="ai-club" selected>Vs AI (Club Player)</option>
-                    <option value="ai-beginner">Vs AI (Beginner)</option>
+                <select id="game-mode" class="styled-select" onchange="resetGame()">
+                    <option value="ai-standard" selected>Vs AI (Stockfish Engine)</option>
                     <option value="local">Local Multiplayer</option>
                     <option value="online-create">Online &#8212; Create Room</option>
-                    <option value="online-join">Online &#8212; Join Room (Enter Code)</option>
+                    <option value="online-join">Online &#8212; Join Room</option>
                     <option value="online-random">Online &#8212; Random Match</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label for="board-theme">Visual Theme:</label>
-                <select id="board-theme" onchange="changeTheme()">
-                    <option value="theme-retro" selected>Windows 95 (Retro)</option>
-                    <option value="theme-wood">Classic Wood</option>
-                    <option value="theme-neon">Cyber Neon</option>
-                    <option value="theme-dark">Midnight Dark</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <label for="sound-toggle">Sound FX:</label>
-                <select id="sound-toggle">
-                    <option value="on" selected>On</option>
-                    <option value="off">Off</option>
+                <label for="sound-toggle">Audio:</label>
+                <select id="sound-toggle" class="styled-select">
+                    <option value="on" selected>Sound FX On</option>
+                    <option value="off">Muted</option>
                 </select>
             </div>
             
             <div class="button-group">
-                <button onclick="resetGame()">New Game</button>
-                <button onclick="undoMove()">Undo Move</button>
-                <button onclick="flipBoard()">Flip Board</button>
+                <button class="btn btn-secondary" onclick="resetGame()">New Game</button>
+                <button class="btn btn-secondary" onclick="undoMove()">Undo Move</button>
+                <button class="btn btn-secondary" onclick="flipBoard()">Flip Board</button>
             </div>
             
-            <hr class="retro-hr">
+            <div class="panel-divider"></div>
             
-            <h3 class="panel-title">Position Setup (FEN)</h3>
+            <div class="panel-header">Pro Training Tools</div>
+            <div class="button-group flex-col">
+                <button id="btn-threat" class="btn btn-outline" onclick="toggleThreatRadar()">🛡️ Toggle Threat Radar</button>
+                <button id="btn-blindfold" class="btn btn-outline" onclick="toggleBlindfold()">👁️ Toggle Blindfold Mode</button>
+            </div>
+
+            <div class="panel-divider"></div>
+            
+            <div class="panel-header">Position Setup</div>
             <div class="typing-container">
-                <input type="text" id="fen-input" placeholder="Paste FEN here..." autocomplete="off">
-                <button onclick="loadFEN()">Load</button>
+                <input type="text" id="fen-input" class="styled-input" placeholder="Paste FEN here..." autocomplete="off">
+                <button class="btn btn-primary" onclick="loadFEN()">Load</button>
             </div>
 
-            <hr class="retro-hr">
-
-            <h3 class="panel-title">Engine Analysis</h3>
-            <div class="status-box" id="evaluation">Eval: +0.00</div>
-            <div class="status-box status-turn" id="status">White to move</div>
+            <div class="engine-stats">
+                <div class="status-box eval-box" id="evaluation">Eval: +0.00</div>
+                <div class="status-box turn-box" id="status">White to move</div>
+            </div>
         </aside>
 
         <!-- Center: Board Area -->
-        <section class="panel board-area">
-            <!-- Top Captured Pieces -->
+        <section class="board-area">
             <div id="captured-top" class="captured-pieces"></div>
             
-            <div class="board-and-eval">
-                <!-- Visual Evaluation Bar -->
+            <div class="board-container-3d">
                 <div class="eval-bar-container">
                     <div id="eval-fill" class="eval-fill"></div>
                 </div>
                 
-                <div class="board-wrapper">
+                <div class="board-wrapper skeuomorphic-board">
                     <div id="board"></div>
                 </div>
             </div>
 
-            <!-- Bottom Captured Pieces -->
             <div id="captured-bottom" class="captured-pieces"></div>
             
-            <!-- Typing Interface moved below board for focus -->
-            <div class="typing-container blitz-typing" style="margin-top: 15px;">
-                <input type="text" id="type-move" placeholder="Type FIDE move (e.g. e4, Nf3)..." autocomplete="off">
-                <button onclick="submitTypedMove()">Enter</button>
+            <div class="typing-container blitz-typing">
+                <input type="text" id="type-move" class="styled-input" placeholder="Type FIDE move (e.g. e4, Nf3)..." autocomplete="off">
+                <button class="btn btn-primary" onclick="submitTypedMove()">Enter Move</button>
             </div>
         </section>
 
         <!-- Right Sidebar: History & Export -->
-        <aside class="panel sidebar">
-            <h3 class="panel-title">Move History (PGN)</h3>
-            <div id="pgn" class="history-box"></div>
+        <aside class="panel sidebar glossy-panel">
+            <div class="panel-header">Move History (PGN)</div>
+            <div id="pgn" class="history-box styled-scroll"></div>
             
-            <div class="button-group" style="margin-top: 10px;">
-                <button class="full-width-btn" onclick="downloadPGN()">Download PGN</button>
-                <button class="full-width-btn action-btn" onclick="analyzeOnLichess()">Analyze on Lichess</button>
+            <div class="button-group flex-col" style="margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="downloadPGN()">Download PGN</button>
+                <button class="btn btn-action" onclick="analyzeOnLichess()">Analyze on Lichess</button>
             </div>
             
-            <!-- Hidden form for Lichess import -->
-            <form action="https://lichess.org/api/import" method="post" target="_blank" id="lichess-form" style="display:none;">
+            <form action="https://lichess.org/api/import" method="post" target="_blank" rel="noopener noreferrer" id="lichess-form" style="display:none;">
                 <input type="hidden" name="pgn" id="lichess-pgn">
             </form>
         </aside>
     </main>
 
-    <footer class="footer">
-        &copy; 2026 GM Chess. Stockfish 10 WASM Powered.
+    <footer class="footer glossy-panel" id="main-footer">
+        <p>&copy; 2026 GM Chess. Secured & Powered by Stockfish WASM.</p>
     </footer>
-
-    <!-- Donation Modal -->
-    <div id="donate-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="panel-title" style="margin:0;">Support GM Chess</h3>
-                <button class="close-btn" onclick="closeDonateModal()">X</button>
-            </div>
-            <p>Your support helps maintain our servers, keep Stockfish running 24/7, and develop new features!</p>
-            <div class="donate-buttons">
-                <button class="full-width-btn action-btn" onclick="window.open('https://buymeacoffee.com/', '_blank')">☕ Buy us a Coffee</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Multiplayer Overlay Modal -->
     <div id="mp-overlay" class="modal-overlay">
-        <div id="mp-box" class="modal-content" style="max-width:420px; text-align:center;">
+        <div id="mp-box" class="modal-content web2-modal">
             <div class="modal-header">
-                <h3 class="panel-title" id="mp-title" style="margin:0;">Online Multiplayer</h3>
-                <button class="close-btn" onclick="cancelMultiplayer()">X</button>
+                <h3 id="mp-title">Online Multiplayer</h3>
+                <button class="close-btn" onclick="cancelMultiplayer()">×</button>
             </div>
-            <div style="padding: 15px 20px;">
-                <p id="mp-status" style="font-size:14px; margin-bottom:15px;"></p>
+            <div class="modal-body">
+                <p id="mp-status" class="status-text"></p>
                 
-                <!-- Create Room Details -->
-                <div id="mp-room-info" style="display:none; margin-bottom:15px;">
-                    <p style="margin:5px 0;">Room Code:</p>
-                    <div style="font-size: 24px; font-weight: bold; letter-spacing: 4px; font-family: monospace; background: #ffffff; border: 2px inset var(--border-darker); padding: 8px; margin: 10px 0; color: #000;" id="mp-room-id">------</div>
-                    <div class="button-group" style="justify-content:center;">
-                        <button onclick="copyRoomCode()">Copy Code</button>
-                        <button onclick="copyRoomLink()">Copy Share Link</button>
+                <div id="mp-room-info" style="display:none;">
+                    <p>Room Code:</p>
+                    <div class="room-code-display" id="mp-room-id">------</div>
+                    <div class="button-group center">
+                        <button class="btn btn-secondary" onclick="copyRoomCode()">Copy Code</button>
+                        <button class="btn btn-secondary" onclick="copyRoomLink()">Copy Link</button>
                     </div>
                 </div>
 
-                <!-- Join Room Form -->
-                <div id="mp-join-container" style="display:none; margin-bottom:15px;">
-                    <div class="typing-container">
-                        <input type="text" id="mp-join-input" placeholder="Enter 6-character Code (e.g. AB12CD)" autocomplete="off" style="text-transform:uppercase; text-align:center; font-weight:bold; letter-spacing:2px;">
-                        <button onclick="submitJoinRoom()" class="action-btn">Join Game</button>
-                    </div>
+                <div id="mp-join-container" style="display:none;">
+                    <input type="text" id="mp-join-input" class="styled-input center-text uppercase" placeholder="Enter 6-char Code" maxlength="6">
+                    <button class="btn btn-primary full-width mt-10" onclick="submitJoinRoom()">Join Game</button>
                 </div>
 
-                <!-- Action Buttons -->
-                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                    <button id="mp-retry-btn" onclick="retryMultiplayerConnection()" style="display:none;" class="action-btn">Retry Connection</button>
-                    <button id="mp-cancel-btn" onclick="cancelMultiplayer()">Cancel / Exit</button>
+                <div class="button-group center mt-15">
+                    <button id="mp-retry-btn" class="btn btn-action" onclick="retryMultiplayerConnection()" style="display:none;">Retry</button>
+                    <button id="mp-cancel-btn" class="btn btn-danger" onclick="cancelMultiplayer()">Cancel</button>
                 </div>
             </div>
         </div>
     </div>
+    
     <script src="script.js"></script>
 </body>
 </html>
