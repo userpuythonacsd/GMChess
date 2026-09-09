@@ -24,7 +24,7 @@ const pieceImages = {
     'K': 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg'
 };
 
-let aiSafetyTimer = null;
+// let aiSafetyTimer = null;
 
 // Initialize Stockfish Worker robustly
 function initEngine() {
@@ -36,10 +36,7 @@ function initEngine() {
         engine.onmessage = handleEngineMessage;
         engine.onerror = function(err) {
             console.error("Stockfish Worker Error", err);
-            engine = null;
-            if (isAiThinking) {
-                makeFallbackAiMove();
-            }
+            isAiThinking = false;
         };
         
         engine.postMessage('uci');
@@ -84,9 +81,9 @@ function handleEngineMessage(event) {
     if (line.includes('score cp')) {
         const match = line.match(/score cp (-?\d+)/);
         if (match) {
-            let evalScore = parseInt(match[1]) / 100;
-            if (chess.turn() === 'b') evalScore = -evalScore; 
-            updateEvalVisuals(evalScore, false);
+            let eval = parseInt(match[1]) / 100;
+            if (chess.turn() === 'b') eval = -eval; 
+            updateEvalVisuals(eval, false);
         }
     } else if (line.includes('score mate')) {
         const match = line.match(/score mate (-?\d+)/);
@@ -106,25 +103,19 @@ function handleEngineMessage(event) {
                 const moveStr = match[1];
                 const from = moveStr.substring(0, 2);
                 const to = moveStr.substring(2, 4);
-                let moveObj = { from, to };
-                if (moveStr.length > 4) {
-                    moveObj.promotion = moveStr[4];
-                }
+                const promotion = moveStr.length > 4 ? moveStr[4] : 'q';
                 
                 const isCapture = chess.get(to) !== null;
-                const result = chess.move(moveObj);
+                const result = chess.move({ from, to, promotion });
                 
-                if (result) {
+                if(result) {
                     lastMove = { from, to };
                     playSound(isCapture ? 'capture' : 'move');
                     if (chess.in_check()) playSound('check');
-                    isAiThinking = false;
-                    updateGameState();
-                    return;
                 }
             }
-            // If Stockfish move was invalid or unparseable, make fallback legal move
-            makeFallbackAiMove();
+            isAiThinking = false;
+            updateGameState();
         }
     }
 }
@@ -457,7 +448,7 @@ function triggerAI() {
                 if (isAiThinking) {
                     makeFallbackAiMove();
                 }
-            }, 6000);
+            }, 1200);
             return;
         } catch(e) {
             console.error("Worker postMessage failed", e);
@@ -780,6 +771,5 @@ document.addEventListener('DOMContentLoaded', () => {
     attachSocketListeners();
     socket.emit('joinRoom', { roomId: roomId.trim() });
 })();
-
 
 
