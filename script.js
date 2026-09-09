@@ -24,7 +24,8 @@ const pieceImages = {
     'K': 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg'
 };
 
-// let aiSafetyTimer = null;
+let aiSafetyTimer = null;
+let isBackgroundAnalysis = false;
 
 // Initialize Stockfish Worker robustly
 function initEngine() {
@@ -48,6 +49,7 @@ function initEngine() {
 }
 
 function makeFallbackAiMove() {
+    clearTimeout(aiSafetyTimer);
     if (chess.game_over()) {
         isAiThinking = false;
         return;
@@ -63,7 +65,11 @@ function makeFallbackAiMove() {
                  : (checks.length > 0) ? checks[Math.floor(Math.random() * checks.length)]
                  : moves[Math.floor(Math.random() * moves.length)];
     
-    const result = chess.move(chosen);
+    let moveObj = { from: chosen.from, to: chosen.to };
+    if (chosen.promotion) moveObj.promotion = chosen.promotion;
+    else if (chosen.piece === 'p' && (chosen.to[1] === '8' || chosen.to[1] === '1')) moveObj.promotion = 'q';
+
+    const result = chess.move(moveObj);
     if (result) {
         lastMove = { from: result.from, to: result.to };
         playSound(result.captured ? 'capture' : 'move');
@@ -81,9 +87,9 @@ function handleEngineMessage(event) {
     if (line.includes('score cp')) {
         const match = line.match(/score cp (-?\d+)/);
         if (match) {
-            let eval = parseInt(match[1]) / 100;
-            if (chess.turn() === 'b') eval = -eval; 
-            updateEvalVisuals(eval, false);
+            let evalScore = parseInt(match[1]) / 100;
+            if (chess.turn() === 'b') evalScore = -evalScore; 
+            updateEvalVisuals(evalScore, false);
         }
     } else if (line.includes('score mate')) {
         const match = line.match(/score mate (-?\d+)/);
@@ -96,8 +102,13 @@ function handleEngineMessage(event) {
 
     // Best move execution
     if (line.startsWith('bestmove')) {
+        if (isBackgroundAnalysis) {
+            isBackgroundAnalysis = false;
+            return;
+        }
         clearTimeout(aiSafetyTimer);
         if (isAiThinking) {
+            let moveSuccess = false;
             const match = line.match(/^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)/);
             if (match && match[1]) {
                 const moveStr = match[1];
@@ -108,14 +119,18 @@ function handleEngineMessage(event) {
                 const isCapture = chess.get(to) !== null;
                 const result = chess.move({ from, to, promotion });
                 
-                if(result) {
+                if (result) {
+                    moveSuccess = true;
                     lastMove = { from, to };
                     playSound(isCapture ? 'capture' : 'move');
                     if (chess.in_check()) playSound('check');
+                    isAiThinking = false;
+                    updateGameState();
                 }
             }
-            isAiThinking = false;
-            updateGameState();
+            if (!moveSuccess) {
+                makeFallbackAiMove();
+            }
         }
     }
 }
@@ -436,6 +451,7 @@ function triggerAI() {
     if (mode === 'ai-master') { depth = '14'; skill = '15'; }
     if (mode === 'ai-gm') { depth = '18'; skill = '20'; }
 
+    isBackgroundAnalysis = false;
     isAiThinking = true;
     clearTimeout(aiSafetyTimer);
 
@@ -444,11 +460,15 @@ function triggerAI() {
             engine.postMessage('setoption name Skill Level value ' + skill);
             engine.postMessage('position fen ' + chess.fen());
             engine.postMessage('go depth ' + depth);
+            const timeoutMs = mode === 'ai-gm' ? 7000 
+                            : mode === 'ai-master' ? 5000 
+                            : mode === 'ai-club' ? 3000 
+                            : 2000;
             aiSafetyTimer = setTimeout(() => {
                 if (isAiThinking) {
                     makeFallbackAiMove();
                 }
-            }, 1200);
+            }, timeoutMs);
             return;
         } catch(e) {
             console.error("Worker postMessage failed", e);
@@ -465,17 +485,25 @@ function updateGameState() {
     const mode = document.getElementById('game-mode').value;
     if (mode.startsWith('online-')) return;
 
-    if (engine) engine.postMessage('stop'); 
-    
-    if (chess.game_over()) return;
+    if (chess.game_over()) {
+        isAiThinking = false;
+        if (engine) engine.postMessage('stop');
+        return;
+    }
 
     if (mode !== 'local' && chess.turn() === (isFlipped ? 'w' : 'b')) {
+        clearTimeout(analysisTimeout);
+        if (isBackgroundAnalysis) {
+            isBackgroundAnalysis = false;
+            if (engine) engine.postMessage('stop');
+        }
         setTimeout(triggerAI, 50);
     } else {
         isAiThinking = false;
         clearTimeout(analysisTimeout);
         analysisTimeout = setTimeout(() => {
-            if(engine) {
+            if (engine && !isAiThinking) {
+                isBackgroundAnalysis = true;
                 engine.postMessage('position fen ' + chess.fen());
                 engine.postMessage('go depth 12');
             }
