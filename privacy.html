@@ -16,35 +16,34 @@
         </div>
     </header>
     
+    <!-- Paste Global Nav Bar Here -->
     <nav class="nav-bar">
         <a href="index.html">Play Game</a>
         <a href="about.html">About Us</a>
         <a href="contact.html">Contact Us</a>
-        <a href="changelog.html">Change Log</a>
         <a href="terms.html">Terms of Service</a>
         <a href="privacy.html">Privacy Policy</a>
-        <a href="copyright.html">Copyright</a>
-        <a href="github.html">GitHub</a>
+        <a href="https://github.com/YOUR_GITHUB_USERNAME" target="_blank">GitHub</a>
     </nav>
 
     <main class="panel" style="max-width: 800px; margin: 0 auto; line-height: 1.6;">
         <h2 class="panel-title">Privacy Policy</h2>
         
         <h3>Zero Tracking Guarantee</h3>
-        <p>GM Chess respects your privacy to the absolute maximum. We operate a completely anonymous platform. <strong>We do not collect personal profiles, utilize tracking cookies, or serve advertisements.</strong></p>
+        <p>GM Chess respects your privacy to the absolute maximum. Because our application relies entirely on client-side WebAssembly (WASM) and JavaScript, <strong>we do not collect, transmit, or store your gameplay data on our servers.</strong></p>
         
-        <h3>How We Handle Your Data</h3>
+        <h3>Local Data Processing</h3>
         <ul>
-            <li><strong>Local Play (vs Stockfish):</strong> All engine calculations and move histories are processed entirely within your browser's local memory using WebAssembly. No data leaves your device.</li>
-            <li><strong>Online Multiplayer (WebSockets):</strong> When you play against another human online, our server strictly acts as a real-time router. Your IP address is used temporarily to maintain the active WebSocket connection. <strong>We do not permanently log IP addresses, nor do we store chat histories or permanent records of your online matches.</strong> Once the session ends, the connection data is destroyed.</li>
-            <li><strong>Game Exports:</strong> Your game history (PGN) is only generated locally. It is only exported if you explicitly click "Download PGN" or "Analyze on Lichess".</li>
+            <li><strong>Engine Evaluation:</strong> All Stockfish engine calculations are performed entirely on your device's CPU.</li>
+            <li><strong>Move History (PGN):</strong> Your game history is generated locally. It is only exported when you explicitly click "Download PGN" or "Analyze on Lichess".</li>
+            <li><strong>Theme Preferences:</strong> We currently do not use tracking cookies. In future updates, we may use local `localStorage` to save your theme preferences, which remains strictly on your hard drive.</li>
         </ul>
 
         <h3>Third-Party Integrations</h3>
         <p>If you choose to export your game to Lichess via our "Analyze on Lichess" feature, your PGN data will be sent to the Lichess API. At that point, you are subject to the Lichess Privacy Policy.</p>
 
         <hr class="retro-hr">
-        <p>If you have any concerns regarding data or privacy, please contact our administrative team at: <a href="mailto:info@gmchess.online" style="color: #0000ee;">info@gmchess.online</a></p>
+        <p>If you have any concerns regarding your data, please contact our administrative team at: <a href="mailto:info@gmchess.online" style="color: #0000ee;">info@gmchess.online</a></p>
     </main>
 
     <footer class="footer">
